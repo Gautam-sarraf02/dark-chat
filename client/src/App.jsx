@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+
 import { socket } from './services/socket';
 import { fetchAnonymousSession } from './services/api';
 import { soundFx } from './utils/soundEffects';
@@ -11,29 +12,36 @@ import ChatPage from './pages/ChatPage';
 import ChatEndedPage from './pages/ChatEndedPage';
 
 export default function App() {
-  const [view, setView] = useState('landing'); // 'landing' | 'searching' | 'chat' | 'ended'
+  const [view, setView] = useState('landing');
   const [currentUser, setCurrentUser] = useState(null);
   const [partner, setPartner] = useState(null);
   const [roomId, setRoomId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('connected');
-  const [onlineStats, setOnlineStats] = useState({ onlineUsers: 1, waiting: 0, activeRooms: 0 });
+  const [onlineStats, setOnlineStats] = useState({
+    onlineUsers: 1,
+    waiting: 0,
+    activeRooms: 0,
+  });
   const [chatEndReason, setChatEndReason] = useState('');
   const [toast, setToast] = useState(null);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type });
+
     setTimeout(() => {
-      setToast((prev) => (prev?.message === message ? null : prev));
+      setToast((prev) =>
+        prev?.message === message ? null : prev
+      );
     }, 4500);
   }, []);
 
-  // 1. Initialize user session on mount
+  // 1. Initialize user session
   useEffect(() => {
     async function initSession() {
-      // Check sessionStorage for existing temporary session
       const cached = sessionStorage.getItem('darkchat_user_session');
+
       if (cached) {
         try {
           const user = JSON.parse(cached);
@@ -42,9 +50,13 @@ export default function App() {
         } catch (e) { }
       }
 
-      // Fetch or generate fresh anonymous user session
       const newUser = await fetchAnonymousSession();
-      sessionStorage.setItem('darkchat_user_session', JSON.stringify(newUser));
+
+      sessionStorage.setItem(
+        'darkchat_user_session',
+        JSON.stringify(newUser)
+      );
+
       setCurrentUser(newUser);
     }
 
@@ -58,7 +70,10 @@ export default function App() {
     }
 
     function onConnect() {
-      setConnectionStatus((prev) => (prev === 'searching' ? 'searching' : 'connected'));
+      setConnectionStatus((prev) =>
+        prev === 'searching' ? 'searching' : 'connected'
+      );
+
       if (currentUser) {
         socket.emit('init_user', currentUser);
       }
@@ -83,19 +98,34 @@ export default function App() {
 
     function onMatchFound(data) {
       soundFx.playMatchFound();
+
       setPartner(data.partner);
       setRoomId(data.roomId);
       setMessages([]);
       setIsPartnerTyping(false);
       setConnectionStatus('matched');
       setView('chat');
-      showToast(`Connected with ${data.partner.username}!`, 'success');
+
+      showToast(
+        `Connected with ${data.partner.username}!`,
+        'success'
+      );
     }
 
+    // MESSAGE RECEIVE
     function onReceiveMessage(message) {
-      console.log("RECEIVED MESSAGE:", message.id, message.content);
+      console.log(
+        'RECEIVED MESSAGE:',
+        message.id,
+        message.content
+      );
 
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => {
+        console.log('MESSAGES BEFORE:', prev.length);
+        console.log('ADDING:', message.id);
+
+        return [...prev, message];
+      });
 
       if (message.senderId === currentUser?.userId) {
         soundFx.playMessageSent();
@@ -107,22 +137,30 @@ export default function App() {
 
     function onMessageBlocked(data) {
       soundFx.playChatEnded();
-      showToast(data.warning || 'Message blocked by moderation filter.', 'warning');
 
-      // Add local warning in message feed
+      showToast(
+        data.warning || 'Message blocked by moderation filter.',
+        'warning'
+      );
+
       setMessages((prev) => [
         ...prev,
         {
           id: `warn_${Date.now()}`,
           type: 'warning',
-          content: data.warning || 'Your message violated Dark Chat safety guidelines and was not sent.',
+          content:
+            data.warning ||
+            'Your message violated Dark Chat safety guidelines and was not sent.',
           createdAt: new Date().toISOString(),
         },
       ]);
     }
 
     function onMessageError(data) {
-      showToast(data.error || 'Failed to send message.', 'error');
+      showToast(
+        data.error || 'Failed to send message.',
+        'error'
+      );
     }
 
     function onPartnerTyping() {
@@ -135,14 +173,24 @@ export default function App() {
 
     function onPartnerLeft(data) {
       soundFx.playChatEnded();
+
       setIsPartnerTyping(false);
-      setChatEndReason(data?.reason || 'Stranger has disconnected.');
+
+      setChatEndReason(
+        data?.reason || 'Stranger has disconnected.'
+      );
+
       setView('ended');
-      showToast(data?.reason || 'Stranger has left the chat.', 'info');
+
+      showToast(
+        data?.reason || 'Stranger has left the chat.',
+        'info'
+      );
     }
 
     function onChatEndedAck() {
       soundFx.playChatEnded();
+
       setIsPartnerTyping(false);
       setChatEndReason('You ended the conversation.');
       setView('ended');
@@ -150,9 +198,15 @@ export default function App() {
 
     function onUserBlockedAck(data) {
       soundFx.playChatEnded();
+
       setIsPartnerTyping(false);
-      setChatEndReason(data?.message || 'User blocked and chat ended.');
+
+      setChatEndReason(
+        data?.message || 'User blocked and chat ended.'
+      );
+
       setView('ended');
+
       showToast('Stranger blocked.', 'success');
     }
 
@@ -189,33 +243,39 @@ export default function App() {
     };
   }, [currentUser, showToast]);
 
-  // Sync user identification when currentUser becomes available
+  // 3. Sync user identification
   useEffect(() => {
     if (currentUser && socket.connected) {
       socket.emit('init_user', currentUser);
     }
   }, [currentUser]);
 
-  // Handler: Start Chatting (Finding Match)
+  // Start Chatting
   const handleStartChat = () => {
     if (!currentUser) return;
-    if (!socket.connected) socket.connect();
+
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     setView('searching');
     setConnectionStatus('searching');
+
     socket.emit('find_match', currentUser);
   };
 
-  // Handler: Cancel Matchmaking
+  // Cancel Matchmaking
   const handleCancelSearch = () => {
     socket.emit('cancel_search');
+
     setConnectionStatus('connected');
     setView('landing');
   };
 
-  // Handler: Send Message
+  // Send Message
   const handleSendMessage = (text) => {
     if (!roomId || !text.trim()) return;
+
     socket.emit('send_message', {
       roomId,
       type: 'text',
@@ -223,9 +283,10 @@ export default function App() {
     });
   };
 
-  // Handler: Send Sticker
+  // Send Sticker
   const handleSendSticker = (stickerId) => {
     if (!roomId || !stickerId) return;
+
     socket.emit('send_message', {
       roomId,
       type: 'sticker',
@@ -233,49 +294,65 @@ export default function App() {
     });
   };
 
-  // Handler: Next Partner
+  // Next Partner
   const handleNextPartner = () => {
     if (!roomId) return;
+
     setMessages([]);
     setIsPartnerTyping(false);
     setView('searching');
     setConnectionStatus('searching');
+
     socket.emit('next_partner', { roomId });
   };
 
-  // Handler: End Chat
+  // End Chat
   const handleEndChat = () => {
     if (roomId) {
       socket.emit('end_chat', { roomId });
     }
+
     setView('ended');
     setChatEndReason('You ended the conversation.');
   };
 
-  // Handler: Block User
+  // Block User
   const handleBlockUser = (targetUserId) => {
     if (!targetUserId) return;
-    socket.emit('block_user', { targetUserId, roomId });
+
+    socket.emit('block_user', {
+      targetUserId,
+      roomId,
+    });
+
     setView('ended');
-    setChatEndReason('Stranger blocked. You will not be matched again.');
+
+    setChatEndReason(
+      'Stranger blocked. You will not be matched again.'
+    );
   };
 
-  // Handler: Typing Feedback
+  // Typing Feedback
   const handleTyping = () => {
-    if (roomId) socket.emit('typing', { roomId });
+    if (roomId) {
+      socket.emit('typing', { roomId });
+    }
   };
 
   const handleStopTyping = () => {
-    if (roomId) socket.emit('stop_typing', { roomId });
+    if (roomId) {
+      socket.emit('stop_typing', { roomId });
+    }
   };
 
-  // Handler: Return Home
+  // Return Home
   const handleNavigateHome = () => {
     if (view === 'searching') {
       socket.emit('cancel_search');
     } else if (view === 'chat' && roomId) {
       socket.emit('end_chat', { roomId });
     }
+
     setView('landing');
     setConnectionStatus('connected');
   };
@@ -283,18 +360,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col selection:bg-neon-purple selection:text-white font-sans">
 
-      {/* Toast Alert */}
-      <Toast toast={toast} onClose={() => setToast(null)} />
+      <Toast
+        toast={toast}
+        onClose={() => setToast(null)}
+      />
 
-      {/* Persistent Navbar */}
       <Navbar
         currentUser={currentUser}
         onlineStats={onlineStats}
         onNavigateHome={handleNavigateHome}
       />
 
-      {/* Main View Router */}
       <main className="flex-1 flex flex-col">
+
         {view === 'landing' && (
           <LandingPage
             onStartChat={handleStartChat}
@@ -336,8 +414,8 @@ export default function App() {
             reason={chatEndReason}
           />
         )}
-      </main>
 
+      </main>
     </div>
   );
 }
