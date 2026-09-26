@@ -96,10 +96,10 @@ export default function ChatPage({
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] max-w-5xl w-full mx-auto px-2 sm:px-6 py-2 sm:py-4">
-      
+
       {/* 1. CHAT HEADER BAR */}
       <div className="w-full glass-panel-elevated rounded-2xl px-4 py-3 border border-white/10 flex items-center justify-between gap-2 shadow-lg mb-2">
-        
+
         {/* Stranger Info & Status */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-neon-purple to-neon-violet flex items-center justify-center text-white shrink-0 shadow-sm">
@@ -123,7 +123,7 @@ export default function ChatPage({
 
         {/* Action Controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          
+
           {/* Next Button */}
           <button
             onClick={onNextPartner}
@@ -169,7 +169,7 @@ export default function ChatPage({
 
       {/* 2. MESSAGE FEED AREA */}
       <div className="flex-1 glass-panel rounded-2xl border border-white/5 p-4 overflow-y-auto relative flex flex-col space-y-1">
-        
+
         {/* Welcome Notice Card */}
         <div className="p-4 rounded-2xl bg-dark-850/60 border border-white/5 text-center my-4 max-w-md mx-auto space-y-2">
           <div className="w-8 h-8 rounded-full bg-neon-purple/20 text-neon-purple flex items-center justify-center mx-auto">
@@ -186,7 +186,7 @@ export default function ChatPage({
         {/* Message Bubble List */}
         {messages.map((msg) => (
           <ChatMessage
-            key={msg.id || `${msg.createdAt}_${Math.random()}`}
+            key={msg.id}
             message={msg}
             isOwn={msg.senderId === currentUser?.userId}
             strangerUsername={partner?.username}
@@ -205,7 +205,7 @@ export default function ChatPage({
 
       {/* 3. INPUT DOCK */}
       <div className="relative mt-2">
-        
+
         {/* Sticker Picker Popup */}
         {showStickerPicker && (
           <StickerPicker
@@ -215,16 +215,15 @@ export default function ChatPage({
         )}
 
         <div className="glass-panel-elevated rounded-2xl p-2 sm:p-2.5 border border-white/10 flex items-center gap-2 shadow-2xl">
-          
+
           {/* Sticker Picker Trigger */}
           <button
             type="button"
             onClick={() => setShowStickerPicker((prev) => !prev)}
-            className={`p-2.5 rounded-xl transition-all focus:outline-none ${
-              showStickerPicker
+            className={`p-2.5 rounded-xl transition-all focus:outline-none ${showStickerPicker
                 ? 'bg-neon-purple text-white shadow-neon-purple/40 shadow-sm'
                 : 'bg-dark-800 hover:bg-dark-750 text-slate-300 hover:text-white border border-white/5'
-            }`}
+              }`}
             title="Open Stickers"
           >
             <Smile className="w-5 h-5 text-neon-cyan" />

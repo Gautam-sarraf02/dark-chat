@@ -39,7 +39,7 @@ export default function App() {
           const user = JSON.parse(cached);
           setCurrentUser(user);
           return;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Fetch or generate fresh anonymous user session
@@ -93,6 +93,8 @@ export default function App() {
     }
 
     function onReceiveMessage(message) {
+      console.log("RECEIVED MESSAGE:", message.id, message.content);
+
       setMessages((prev) => [...prev, message]);
 
       if (message.senderId === currentUser?.userId) {
@@ -280,7 +282,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col selection:bg-neon-purple selection:text-white font-sans">
-      
+
       {/* Toast Alert */}
       <Toast toast={toast} onClose={() => setToast(null)} />
 
